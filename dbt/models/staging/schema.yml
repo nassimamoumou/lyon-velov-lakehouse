@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: stg_station_status
+    description: État des stations nettoyé, une ligne par changement d'état.
+    columns:
+      - name: station_number
+        tests: [not_null]
+      - name: observed_at
+        tests: [not_null]
+      - name: status
+        tests:
+          - accepted_values:
+              values: ["OPEN", "CLOSED"]
+  - name: stg_weather
+    columns:
+      - name: weather_hour
+        tests: [unique, not_null]

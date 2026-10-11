@@ -2,38 +2,52 @@
 
 Plateforme de données qui collecte en continu la disponibilité des stations Vélo'v de Lyon, la croise avec la météo et le calendrier, et prédit les stations vides.
 
-> Étape 1 sur 8 : collecte des données dans PostgreSQL.
+> Étape 2 sur 8 : orchestration Airflow et modélisation dbt.
 
-## Architecture (étape 1)
+## Architecture actuelle
 
-API JCDecaux → script Python (toutes les 60 s) → PostgreSQL (`raw.station_status`)
+- **Collecte temps réel** : un service Python interroge l'API JCDecaux toutes les 60 s et enregistre chaque changement d'état dans `raw.station_status`.
+- **Collectes batch (Airflow)** : météo horaire (Open-Meteo), jours fériés et vacances scolaires de l'académie de Lyon.
+- **Modélisation (dbt)** : schéma en étoile dans le schéma `marts`.
 
-## Prérequis
+| Table | Contenu |
+| --- | --- |
+| `fct_station_status` | Une ligne par changement d'état d'une station (incrémentale) |
+| `dim_station` | Référentiel des stations |
+| `dim_date` | Calendrier, week-ends, jours fériés, vacances scolaires |
+| `dim_weather` | Météo horaire |
 
-- Docker et Docker Compose
-- Une clé d'API gratuite JCDecaux : https://developer.jcdecaux.com
+Chaque heure, le DAG `velov_hourly` charge la météo puis lance `dbt build`, qui construit les tables et exécute 26 tests de qualité.
 
 ## Installation
 
+Prérequis : Docker Desktop et une clé d'API gratuite [JCDecaux](https://developer.jcdecaux.com).
+
 ```bash
-cp .env.example .env      # puis renseignez JCDECAUX_API_KEY et un mot de passe
-make up                   # démarre PostgreSQL et la collecte
-make logs                 # vérifie que les données arrivent
+cp .env.example .env      # renseignez la clé d'API et les mots de passe
+docker compose up -d --build
 ```
 
-## Vérifier les données
+- Airflow : http://localhost:8080 (utilisateur `admin`, mot de passe `AIRFLOW_ADMIN_PASSWORD`)
+- PostgreSQL : `localhost:5433`
+
+## Exemple de requête
 
 ```sql
-SELECT count(*), max(last_update) FROM raw.station_status;
+-- Part des stations vides par heure de la journée
+select hour_local, round(avg(is_empty::int) * 100, 1) as pct_mesures_vides
+from marts.fct_station_status
+group by hour_local
+order by hour_local;
 ```
 
-## Tests
+## Choix techniques
 
-```bash
-pip install -r ingestion/requirements.txt pytest
-make test
-```
+- Seuls les changements d'état sont stockés (clé `station_number, last_update`), ce qui divise le volume par trois environ.
+- La table de faits est incrémentale : chaque exécution ne retraite que les 3 dernières heures.
+- Les horodatages de l'API sont en UTC et convertis à l'heure de Paris dans dbt.
+- dbt est installé dans un environnement Python séparé d'Airflow pour éviter les conflits de dépendances.
 
 ## Données
 
-Données Vélo'v fournies par JCDecaux. Vérifiez et citez la licence d'utilisation des données avant toute publication.
+Données Vélo'v fournies par JCDecaux, météo par Open-Meteo, calendrier par calendrier.api.gouv.fr et data.education.gouv.fr. Vérifiez et citez la licence de chaque source avant toute publication.

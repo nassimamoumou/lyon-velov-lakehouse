@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: dim_station
+    description: Référentiel des stations Vélo'v.
+    columns:
+      - name: station_number
+        tests: [unique, not_null]
+  - name: dim_date
+    description: Calendrier avec week-ends, jours fériés et vacances scolaires.
+    columns:
+      - name: date_day
+        tests: [unique, not_null]
+  - name: dim_weather
+    description: Météo horaire à Lyon.
+    columns:
+      - name: weather_hour
+        tests: [unique, not_null]
+  - name: fct_station_status
+    description: Faits d'état des stations, jointure vers les trois dimensions.
+    columns:
+      - name: status_id
+        tests: [unique, not_null]
+      - name: station_number
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_station')
+              field: station_number
+      - name: date_day
+        tests:
+          - relationships:
+              to: ref('dim_date')
+              field: date_day
+      - name: weather_hour
+        tests:
+          - relationships:
+              to: ref('dim_weather')
+              field: weather_hour
+              config:
+                severity: warn
