@@ -1,15 +1,19 @@
 """Chaque heure : collecte de la météo, puis reconstruction des tables d'analyse avec dbt."""
 from datetime import datetime, timedelta
 
-from airflow import DAG
-from airflow.operators.bash import BashOperator
-from airflow.operators.python import PythonOperator
+import os
+
+from airflow.providers.standard.operators.bash import BashOperator
+from airflow.providers.standard.operators.python import PythonOperator
+from airflow.sdk import DAG
 
 from velov_common import load_weather
 
+DBT_PROJECT_DIR = os.getenv("DBT_PROJECT_DIR", "/opt/airflow/dbt")
+DBT_BIN = os.getenv("DBT_BIN", "/opt/airflow/dbt-venv/bin/dbt")
 DBT_BUILD = (
     "export DBT_TARGET_PATH=/tmp/dbt-target DBT_LOG_PATH=/tmp/dbt-logs && "
-    "cd /opt/airflow/dbt && /opt/airflow/dbt-venv/bin/dbt build --profiles-dir ."
+    f"cd {DBT_PROJECT_DIR} && {DBT_BIN} build --profiles-dir ."
 )
 
 with DAG(

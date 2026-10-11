@@ -2,7 +2,7 @@
 
 Plateforme de données qui collecte en continu la disponibilité des stations Vélo'v de Lyon, la croise avec la météo et le calendrier, et prédit les stations vides.
 
-> Étape 2 sur 8 : orchestration Airflow et modélisation dbt.
+> Étape 2 sur 8 : orchestration Airflow 3 et modélisation dbt.
 
 ## Architecture actuelle
 
@@ -46,7 +46,7 @@ order by hour_local;
 - Seuls les changements d'état sont stockés (clé `station_number, last_update`), ce qui divise le volume par trois environ.
 - La table de faits est incrémentale : chaque exécution ne retraite que les 3 dernières heures.
 - Les horodatages de l'API sont en UTC et convertis à l'heure de Paris dans dbt.
-- dbt est installé dans un environnement Python séparé d'Airflow pour éviter les conflits de dépendances.
+- Airflow 3.3 (api-server, scheduler, dag-processor) en LocalExecutor ; dbt est installé dans un environnement Python séparé pour éviter les conflits de dépendances.
 
 ## Données
 

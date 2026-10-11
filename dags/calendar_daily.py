@@ -1,8 +1,8 @@
 """Chaque jour : mise à jour des jours fériés et des vacances scolaires de l'académie de Lyon."""
 from datetime import datetime, timedelta
 
-from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
+from airflow.sdk import DAG
 
 from velov_common import load_public_holidays, load_school_holidays
 
